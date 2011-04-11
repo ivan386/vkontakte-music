@@ -55,27 +55,24 @@ function add_link(root, link, dl_img, alt, title)
 {
 	var atag, img;
 	atag = document.createElement('a');
-	atag.setAttribute('href', link);
+	atag.href = link;
+	atag.title = title || "";
 	img = document.createElement('img');
-	img.setAttribute('src', dl_img);
+	img.src = dl_img;
+	img.alt = alt || "";
 	img.style.display = "inline";
 	img.style.cssFloat = "right";
-	img.alt = alt || "";
 	atag.appendChild(img);
-	atag.title = title || "";
 	root.appendChild(atag);
-
 }
-
 
 function add_href(text, fnc){
 	var atag = document.createElement('a');
-	atag.setAttribute('href', "javascript: void(0);");
+	atag.href = "javascript: void(0);";
 	atag.textContent = text;
 	atag.addEventListener("click", fnc, false);
 	return atag
 }
-
 
 function find_tracks(new_only, arg, call_back)
 {
@@ -95,15 +92,14 @@ function find_tracks(new_only, arg, call_back)
 			input = root.getElementsByTagName("input")[0];
 			duration = root.getElementsByClassName("duration")[0];
 			
-			
 			artist = get_text(b);
 			title = get_text(span);
-			link = input.value.split(',')[0];
+			link = input.value.split(',')[0] + "?/" + encodeURIComponent(artist+" - "+title+".mp3");
 			
 			duration = get_text(duration).split(':');
 			
 			var seconds = 0, j = 0;
-			if (duration.length == 3) seconds += duration[j++] *60*60;
+			if (duration.length == 3) seconds += duration[j++] * 60 * 60;
 			if (duration.length > 1) seconds += duration[j++] * 60;
 			
 			seconds += duration[j++]*1;
@@ -123,7 +119,6 @@ function add_links(root, insert_node, artist, title, seconds, link, arg)
 	add_link(insert_node, get_magnet(link, artist + " - " + title + ".mp3") , dl_mag, "U", "Download/Загрузить by Shareaza (shareaza.sf.net)");
 }
 
-
 var nl = encodeURIComponent('\n');
 
 function make_m3u() {
@@ -134,7 +129,7 @@ function make_m3u() {
 	find_tracks(false, buff, function(root, insert_node, artist, title, seconds, link, buff){
 		var track = encodeURIComponent(artist+" - "+title)
 		buff.push(encodeURIComponent('#EXTINF:'), seconds, ',', track, nl)
-		buff.push(encodeURIComponent(link) , "?/" , track , ".mp3", nl, nl)
+		buff.push(encodeURIComponent(link) , nl, nl)
 	})
 	
     window.open(buff.join(""), "_blank")
@@ -149,7 +144,7 @@ function make_pls() {
 	var arg = {buff: buff, index: 1}
 	find_tracks(false, arg, function(root, insert_node, artist, title, seconds, link, arg){
 		var track = encodeURIComponent(artist+" - "+title)
-		arg.buff.push("File", arg.index, "=", encodeURIComponent(link) , "?/" , track , ".mp3" , nl)
+		arg.buff.push("File", arg.index, "=", encodeURIComponent(link) , nl)
 		arg.buff.push("Title", arg.index, "=", track, nl)
 		arg.buff.push("Length", arg.index++, "=", seconds, nl, nl)
     })
