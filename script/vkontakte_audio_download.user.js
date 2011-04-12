@@ -94,7 +94,7 @@ function find_tracks(new_only, arg, call_back)
 			
 			artist = get_text(b);
 			title = get_text(span);
-			link = input.value.split(',')[0] + "?/" + encodeURIComponent(artist+" - "+title+".mp3");
+			link = input.value.split(',')[0] + "#/" + encodeURIComponent(artist+" - "+title+".mp3");
 			
 			duration = get_text(duration).split(':');
 			
