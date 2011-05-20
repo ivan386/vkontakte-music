@@ -1,3 +1,4 @@
+=pod
 =begin html
 <h1>Описание</h1>
 <p>Этот скрипт в сочетании с <a target="_blank" href="http://shareaza.sf.net">Shareaza (shareaza.sf.net)</a> <a href="http://downloads.sourceforge.net/shareaza/Shareaza_2.5.4.0_Win32.exe">(Скачать)</a> или <a href="http://www.westbyte.com/dm/">DownloadMaster</a> позволяет сохранять на диск музыку с нормальным названием файла вместо набора цифр и букв.</p>
