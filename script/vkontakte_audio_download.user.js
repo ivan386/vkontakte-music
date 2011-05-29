@@ -337,10 +337,11 @@ function refresh() {
 		var vk_like = document.createElement('div');
 		vk_like.id = "audio_script_like";
 		vk_like.style.visibility = "hidden";
-		playlists.appendChild(vk_like);
+		vk_like.style.cssFloat = "right";
+		playlists.insertBefore(vk_like, playlists.childNodes[0]);
 		unsafeWindow.VK.init({apiId: 2000010, onlyWidgets: true});
 		unsafeWindow.VK.Widgets.Like("audio_script_like", {
-			type: "mini", 
+			type: "vertical", 
 			pageUrl: "http://userscripts.org/scripts/show/100073",
 			pageTitle: "1.24 VKontakte Audio Download, Playlist, Artist-Title filter",
 			pageDescription: 
@@ -351,8 +352,9 @@ function refresh() {
 		}, 26);
 	}
 	
+		
 	if (!playlists) {
-		var insert_element = document.getElementById("left_blocks") || document.getElementById("side_panel") || document.getElementById("filters");
+		var insert_element = document.getElementById("side_bar") || document.getElementById("left_blocks") || document.getElementById("side_panel") || document.getElementById("filters");
 		if (insert_element){
 			if (!pl_divtag){
 				pl_divtag=document.createElement('div');
@@ -380,7 +382,12 @@ function refresh() {
 				p.appendChild(heart);
 				divtag.appendChild(p);
 			}
-			insert_element.appendChild(pl_divtag);
+			
+			if(insert_element.id=="side_bar")
+				insert_element.insertBefore(pl_divtag, insert_element.getElementsByTagName("OL")[0].nextElementSibling);
+			else
+				insert_element.appendChild(pl_divtag);
+			
 			reset_index({target: document.getElementById("pl_index")});
 		}
 	}
@@ -393,5 +400,4 @@ vk_like_script.src = "http://userapi.com/js/api/openapi.js?29";
 vk_like_script.type = "text/javascript";
 
 document.getElementsByTagName('head')[0].appendChild(vk_like_script);
-
 setInterval(refresh, 1000);
