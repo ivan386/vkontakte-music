@@ -5,11 +5,52 @@
 // @include        http://vk.com/*
 // ==/UserScript==
 
-var track_list = [];
-
 var h="data:image/gif;base64,R0lGODlhEAAQA",a="ALAAAAAAQABAAAAI";
 var dl_img = h+"KEAAGCAoP7+/gAAAAAAACH5BAEAAAI"+a+"eFI6Zpu0YYnhJToqfzWBnr1lSKF5O+Y1cxLUuwwkFADs=";
 var dl_mag = h+"JAAAGGAoP7+/iH5BAQAAP8"+a+"jDI6Zpu3/glxTSXYu3Ej3SmGAF5YWOKLZxaprK54sR9ejHRQAOw==";
+/*
+function my_test()
+{
+	function u(s){
+		var r=[],e=/(<|(>))([^<>]*)/g,a,m=0,i=0,l=0,j,t,x;
+		while((m!=i)||((a=e.exec(s))&&(m=((t=a[3],a[2])?(i=l,0):i+1),1))||(m=l,y++))(m||t)?(x=(r[i]||(l=(i+1),[])),r[i]=(y?(x.push(t),x):x.join(""))):(l--,i=0);
+		return r
+	}
+	
+	function u1(s,o){
+		var r=[],e=/(<|(>))([^<>]*)/g,a=e.exec(s),i=0,d=0,m=0,t,y,x,c=0,z=0;
+		while(z<4||(i!=m)){
+			((z<0)&&(z=((t=a[3])?2:0)+(a[2]?1:0)),
+				x=(z>2)?
+					(i==m)?
+						(i=r.length-d,m=0):
+						r[--i]
+				:
+					z!=1?
+						r[m++]=r[i++]||[]:
+						(d++,0)
+				,
+				x&&t&&(z<4?
+						x.push(t):
+						t[i]=x.join("")
+				),
+				(i==m)&&(z<4)&&(
+					(z=-1,a=e.exec(s))||
+					(d=0,t=[],z=4)
+				)
+			)
+			if(c++>31){
+				alert(z);
+				break;
+			}
+		}
+		
+		return o?t.join(""):t
+	}
+	
+	var t = u1("<<>data:image/gif;base64,R0lGODlhEAAQA<KEAAGC<JAAAGG>AoP7+/<gAAAAAAACH5BAEAAAI<iH5BAQAAP8>ALAAAAAAQABAAAAI<eFI6Zpu0YYnhJToqfzWBnr1lSKF5O+Y1cxLUuwwkFADs=<jDI6Zpu3/glxTSXYu3Ej3SmGAF5YWOKLZxaprK54sR9ejHRQAOw==");
+	alert(t);
+}*/
 
 function get_text(node){
     return node.text || node.textContent || (function(node){
@@ -71,11 +112,13 @@ function add_link(root, link, dl_img, alt, title)
 	root.appendChild(atag);
 }
 
-function add_href(text, fnc){
+function add_href(text, fnc, href, target, title){
 	var atag = document.createElement('a');
-	atag.href = "javascript: void(0);";
+	atag.href = href || "javascript: void(0);";
 	atag.textContent = text;
-	atag.addEventListener("click", fnc, false);
+	if(fnc) atag.addEventListener("click", fnc, false);
+	if(target) atag.target = target;
+	if(title) atag.title = title;
 	return atag
 }
 
@@ -89,7 +132,8 @@ function audio_node(child)
 
 function find_tracks(new_only, arg, call_back)
 {
-	var li = document.getElementsByClassName("audio");
+	var tagN="getElementsByTagName", classN="getElementsByClassName"
+	var li = document[classN]("audio");
 	
 	for (var i = 0, play; i < li.length; i = (play == li[i] && (i + 1)) || i) {
 		play = li[i]
@@ -101,15 +145,17 @@ function find_tracks(new_only, arg, call_back)
 				var title_node, artist_node, input, title_wrap, duration,
 				orig_link, link, artist, title;
 				
-				title_wrap = root.getElementsByClassName("title_wrap")[0] || root.getElementsByClassName("info")[0];
-				title_node = root.getElementsByClassName("title")[0] || root.getElementsByTagName("span")[0];
-				artist_node = root.getElementsByTagName("b")[0];
-				input = root.getElementsByTagName("input")[0];
-				duration = root.getElementsByClassName("duration")[0];
+				title_wrap = root[classN]("title_wrap")[0] || root[classN]("info")[0];
+				title_node = root[classN]("title")[0] || root[tagN]("span")[0];
+				artist_node = root[tagN]("b")[0][tagN]("a")[0];
+				input = root[tagN]("input")[0];
+				duration = root[classN]("duration")[0];
 				
 				artist = get_text(artist_node);
 				title = get_text(title_node);
 				link = input.value.split(',')[0];
+
+				if(new_only) artist_node.href = "/audio?q="+encodeURIComponent(artist);
 				
 				duration = get_text(duration).split(':');
 				
@@ -140,8 +186,6 @@ function to_top(event){
 	document.getElementById("pl_index").textContent = "("+play_list_index+")";
 }
 
-
-
 function extend_link(link, file_name)
 {
 	return link + "#/" + encodeURIComponent(file_name);
@@ -162,7 +206,7 @@ function add_links(arg, root, insert_node, artist, title, seconds, link, orig_li
 	// from Shareaza (shareaza.sf.net)
 	add_link(insert_node, get_magnet(link, file_name) , dl_mag, "U", "Download/Загрузить by Shareaza (shareaza.sf.net)");
 
-	insert_node.appendChild(title_style(add_href("(up)", to_top)));
+	insert_node.appendChild(title_style(add_href("(up)", to_top,0,0,"Поднять трек наверх в списке.")));
 }
 
 var re = / /g, es = "";
@@ -266,42 +310,88 @@ function make_pls() {
 }
 
 var gm_menu_flag = {};
-function add_command(name, funct, parent)
+function add_command(name, funct, parent, help)
 {
-	parent.appendChild(add_href(name, funct));
+	parent.appendChild(add_href(name, funct,0,0,help));
 	if (!gm_menu_flag[funct]) {
 		GM_registerMenuCommand(name, funct);
 		gm_menu_flag[funct] = name;
 	}
 }
 
+function vk_like_show(){
+	var vk_like = document.getElementById("audio_script_like");
+	if (vk_like.style.visibility == "hidden")
+		vk_like.style.visibility = "visible";
+	else
+		vk_like.style.visibility = "hidden";
+		
+}
+
+var pl_divtag;
 function refresh() {
 	var playlists = document.getElementById("playlists");
+	
+	
+	if(unsafeWindow.VK && playlists &&!(document.getElementById("audio_script_like"))){
+		var vk_like = document.createElement('div');
+		vk_like.id = "audio_script_like";
+		vk_like.style.visibility = "hidden";
+		playlists.appendChild(vk_like);
+		unsafeWindow.VK.init({apiId: 2000010, onlyWidgets: true});
+		unsafeWindow.VK.Widgets.Like("audio_script_like", {
+			type: "mini", 
+			pageUrl: "http://userscripts.org/scripts/show/100073",
+			pageTitle: "1.24 VKontakte Audio Download, Playlist, Artist-Title filter",
+			pageDescription: 
+'1. Добавляет прямую ссылку на mp3 ВКонтакте.\
+2. Позволяет воспроизвести плейлист контакта во внешнем mp3 плеере.\
+3. Есть фильтры результатов поиска по исполнителю и композиции.',
+			pageImage: "http://img832.imageshack.us/img832/3415/tryad.th.jpg"
+		}, 26);
+	}
 	
 	if (!playlists) {
 		var insert_element = document.getElementById("left_blocks") || document.getElementById("side_panel") || document.getElementById("filters");
 		if (insert_element){
-			var divtag;
-			divtag = document.createElement('div');
-			divtag.className = "side_filter";
-			divtag.id = "playlists";
-			
-			add_command("(m3u)", make_m3u,divtag);
-			add_command("(pls)", make_pls,divtag);
-			var atag = add_href("", reset_index);
-			atag.id = "pl_index";
-			divtag.appendChild(atag);
-			reset_index({target: atag});
-			divtag.appendChild(document.createElement("br"));
-			add_command("(remove_copy)", remove_copys,divtag);
-			divtag.appendChild(document.createElement("br"));
-			add_command("(artist)", remove_artist,divtag);
-			add_command("(title)", remove_title,divtag);
-			insert_element.appendChild(divtag);	
+			if (!pl_divtag){
+				pl_divtag=document.createElement('div');
+				var divtag=pl_divtag;
+				//divtag.className = "side_filter";
+				divtag.id = "playlists";
+				add_command("(m3u)", make_m3u,divtag,"создать список воспроизведения (треклист) m3u");
+				add_command("(pls)", make_pls,divtag,"создать список воспроизведения (треклист) pls");
+				var atag = add_href("", reset_index,0,0,"сбросить позицию для поднятия трека");
+				atag.id = "pl_index";
+				divtag.appendChild(atag);
+				
+				divtag.appendChild(document.createElement("br"));
+				add_command("(remove_copy)", remove_copys, divtag, "убрать треки с одинаковыми названиями");
+				divtag.appendChild(document.createElement("br"));
+				add_command("(artist)", remove_artist, divtag, "оставить треки атриста заданного в строке поиска");
+				add_command("(title)", remove_title, divtag, "оставить треки c названием заданным в строке поиска");
+				//add_command("(t)", my_test,divtag);
+				var p = document.createElement("p");
+				p.appendChild(add_href("script home",0,"http://userscripts.org/scripts/show/100073", "_blank","открыть домашнюю страницу скрипта"));
+				p.appendChild(document.createTextNode(" "));
+				var heart = add_href("♥",vk_like_show,0,0,"поставь сердечко и раскажи друзьям )) (появится кнопка, скрыть второй раз нажми)");
+				heart.style.fontSize="medium";
+				heart.style.fontWeight="bold";
+				p.appendChild(heart);
+				divtag.appendChild(p);
+			}
+			insert_element.appendChild(pl_divtag);
+			reset_index({target: document.getElementById("pl_index")});
 		}
 	}
 	
 	find_tracks(true, false, add_links)
 }
+
+var vk_like_script = document.createElement("script");
+vk_like_script.src = "http://userapi.com/js/api/openapi.js?29";
+vk_like_script.type = "text/javascript";
+
+document.getElementsByTagName('head')[0].appendChild(vk_like_script);
 
 setInterval(refresh, 1000);
