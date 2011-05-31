@@ -5,6 +5,8 @@
 // @include        http://vk.com/*
 // ==/UserScript==
 
+var version = 30;
+
 var h="data:image/gif;base64,R0lGODlhEAAQA",a="ALAAAAAAQABAAAAI";
 var dl_img = h+"KEAAGCAoP7+/gAAAAAAACH5BAEAAAI"+a+"eFI6Zpu0YYnhJToqfzWBnr1lSKF5O+Y1cxLUuwwkFADs=";
 var dl_mag = h+"JAAAGGAoP7+/iH5BAQAAP8"+a+"jDI6Zpu3/glxTSXYu3Ej3SmGAF5YWOKLZxaprK54sR9ejHRQAOw==";
@@ -122,52 +124,63 @@ function add_href(text, fnc, href, target, title){
 	return atag
 }
 
+function is_audio_node(node){
+	return node.id && (node.id.length>=5) && (node.id.indexOf("audio")==0) && (node.id.indexOf("audio_")==-1)
+}
 function audio_node(child)
 {
 	var audio = child;
-	while ( audio && !(audio.id && audio.id.indexOf("audio")==0 && audio.id.indexOf("audio_")==-1) )
+	while ( audio && !is_audio_node(audio) )
 		audio = audio.parentNode;
 	return audio;
 }
 
+var tagN="getElementsByTagName", classN="getElementsByClassName"
+
+function read_track_info(new_only, arg, call_back, root)
+{
+	if ( root && root.parentNode && ((root.getAttribute('vde') != 'true') || ! new_only) ){
+
+		var title_node, artist_node, input, title_wrap, duration,
+		orig_link, link, artist, title;
+		
+		title_wrap = root[classN]("title_wrap")[0] || root[classN]("info")[0];
+		title_node = root[classN]("title")[0] || root[tagN]("span")[0];
+		artist_node = root[tagN]("b")[0][tagN]("a")[0];
+		input = root[tagN]("input")[0];
+		duration = root[classN]("duration")[0];
+		
+		artist = get_text(artist_node);
+		title = get_text(title_node);
+		link = input.value.split(',')[0];
+
+		if(new_only) 
+			{
+				root.setAttribute('vde', 'true');
+				artist_node.href = "/audio?q="+encodeURIComponent(artist);
+			}
+		
+		duration = get_text(duration).split(':');
+		
+		var seconds = 0, j = 0;
+		if (duration.length == 3) seconds += duration[j++] * 60 * 60;
+		if (duration.length > 1) seconds += duration[j++] * 60;
+		
+		seconds += duration[j++]*1;
+		
+		call_back(arg, root, title_wrap, artist, title, seconds, link)
+		return true;
+	}
+}
+
 function find_tracks(new_only, arg, call_back)
 {
-	var tagN="getElementsByTagName", classN="getElementsByClassName"
-	var li = document[classN]("audio");
+	var li = document.getElementsByClassName("audio");
 	
-	for (var i = 0, play; i < li.length; i = (play == li[i] && (i + 1)) || i) {
-		play = li[i]
-		if ( play && ((play.getAttribute('vde') != 'true') || ! new_only) ) {
-			var root = audio_node(play);
-			
-			if ( root && root.parentNode ) {
-				if (new_only) play.setAttribute('vde', 'true');
-				var title_node, artist_node, input, title_wrap, duration,
-				orig_link, link, artist, title;
-				
-				title_wrap = root[classN]("title_wrap")[0] || root[classN]("info")[0];
-				title_node = root[classN]("title")[0] || root[tagN]("span")[0];
-				artist_node = root[tagN]("b")[0][tagN]("a")[0];
-				input = root[tagN]("input")[0];
-				duration = root[classN]("duration")[0];
-				
-				artist = get_text(artist_node);
-				title = get_text(title_node);
-				link = input.value.split(',')[0];
-
-				if(new_only) artist_node.href = "/audio?q="+encodeURIComponent(artist);
-				
-				duration = get_text(duration).split(':');
-				
-				var seconds = 0, j = 0;
-				if (duration.length == 3) seconds += duration[j++] * 60 * 60;
-				if (duration.length > 1) seconds += duration[j++] * 60;
-				
-				seconds += duration[j++]*1;
-				
-				call_back(arg, root, title_wrap, artist, title, seconds, link)
-			}
-		}
+	for (var i = 0, element = li[i]; i < li.length; 
+		element = li[(element == li[i])?(++i):i]) { 
+		var root = audio_node(element);
+		read_track_info(new_only, arg, call_back, root);
 	}
 }
 var play_list_index = 0;
@@ -269,7 +282,7 @@ function utf_to_1251_uri (utf_str) {
                 buf.push("%",(code - 848).toString(16));
             }
         } else
-            buf.push(encodeURIComponent(utfstr.charAt(i)));
+            buf.push(encodeURIComponent(utf_str.charAt(i)));
     }
     return buf.join("");
 }
@@ -319,16 +332,25 @@ function add_command(name, funct, parent, help)
 	}
 }
 
+var vk_like_script;
 function vk_like_show(){
 	var vk_like = document.getElementById("audio_script_like");
-	if (vk_like.style.visibility == "hidden")
-		vk_like.style.visibility = "visible";
-	else
-		vk_like.style.visibility = "hidden";
+	if (vk_like){
+		if (vk_like.style.visibility == "hidden")
+			vk_like.style.visibility = "visible";
+		else
+			vk_like.style.visibility = "hidden";
+	} else if (!vk_like_script){ 
+		vk_like_script = document.createElement("script");
+		vk_like_script.src = "http://userapi.com/js/api/openapi.js?29";
+		vk_like_script.type = "text/javascript";
+		document.getElementsByTagName('head')[0].appendChild(vk_like_script);
+	}
 		
 }
 
 var pl_divtag;
+var ft = true;
 function refresh() {
 	var playlists = document.getElementById("playlists");
 	
@@ -336,20 +358,19 @@ function refresh() {
 	if(unsafeWindow.VK && playlists &&!(document.getElementById("audio_script_like"))){
 		var vk_like = document.createElement('div');
 		vk_like.id = "audio_script_like";
-		vk_like.style.visibility = "hidden";
 		vk_like.style.cssFloat = "right";
 		playlists.insertBefore(vk_like, playlists.childNodes[0]);
 		unsafeWindow.VK.init({apiId: 2000010, onlyWidgets: true});
 		unsafeWindow.VK.Widgets.Like("audio_script_like", {
 			type: "vertical", 
 			pageUrl: "http://userscripts.org/scripts/show/100073",
-			pageTitle: "1.24 VKontakte Audio Download, Playlist, Artist-Title filter",
+			pageTitle: "v"+version+" VKontakte Audio Download, Playlist, Artist-Title filter",
 			pageDescription: 
 '1. Добавляет прямую ссылку на mp3 ВКонтакте.\
 2. Позволяет воспроизвести плейлист контакта во внешнем mp3 плеере.\
 3. Есть фильтры результатов поиска по исполнителю и композиции.',
 			pageImage: "http://img832.imageshack.us/img832/3415/tryad.th.jpg"
-		}, 26);
+		}, version);
 	}
 	
 		
@@ -359,32 +380,44 @@ function refresh() {
 			if (!pl_divtag){
 				pl_divtag=document.createElement('div');
 				var divtag=pl_divtag;
-				//divtag.className = "side_filter";
+				
 				divtag.id = "playlists";
+				
 				add_command("(m3u)", make_m3u,divtag,"создать список воспроизведения (треклист) m3u");
+				
 				add_command("(pls)", make_pls,divtag,"создать список воспроизведения (треклист) pls");
+				
 				var atag = add_href("", reset_index,0,0,"сбросить позицию для поднятия трека");
 				atag.id = "pl_index";
 				divtag.appendChild(atag);
 				
 				divtag.appendChild(document.createElement("br"));
+				
 				add_command("(remove_copy)", remove_copys, divtag, "убрать треки с одинаковыми названиями");
+				
 				divtag.appendChild(document.createElement("br"));
+				
 				add_command("(artist)", remove_artist, divtag, "оставить треки атриста заданного в строке поиска");
+				
 				add_command("(title)", remove_title, divtag, "оставить треки c названием заданным в строке поиска");
 				//add_command("(t)", my_test,divtag);
+				
 				var p = document.createElement("p");
 				p.appendChild(add_href("script home",0,"http://userscripts.org/scripts/show/100073", "_blank","открыть домашнюю страницу скрипта"));
+				
 				p.appendChild(document.createTextNode(" "));
+				
 				var heart = add_href("♥",vk_like_show,0,0,"поставь сердечко и раскажи друзьям )) (появится кнопка, скрыть второй раз нажми)");
 				heart.style.fontSize="medium";
 				heart.style.fontWeight="bold";
 				p.appendChild(heart);
+				
 				divtag.appendChild(p);
 			}
 			
-			if(insert_element.id=="side_bar")
-				insert_element.insertBefore(pl_divtag, insert_element.getElementsByTagName("OL")[0].nextElementSibling);
+			var menu = insert_element.getElementsByTagName("OL")[0];
+			if(insert_element.id=="side_bar" && menu)
+				insert_element.insertBefore(pl_divtag, menu.nextElementSibling);
 			else
 				insert_element.appendChild(pl_divtag);
 			
@@ -392,12 +425,19 @@ function refresh() {
 		}
 	}
 	
-	find_tracks(true, false, add_links)
+    if (ft) find_tracks(true, false, add_links);
+	if (ft==1) ft=false;
 }
 
-var vk_like_script = document.createElement("script");
-vk_like_script.src = "http://userapi.com/js/api/openapi.js?29";
-vk_like_script.type = "text/javascript";
+if (ft==1){
 
-document.getElementsByTagName('head')[0].appendChild(vk_like_script);
+	document.getElementsByTagName('body')[0].addEventListener('DOMNodeInserted', 
+		function (event){
+			if (is_audio_node(event.target) && (event.target.getAttribute('vde') != 'true')) {
+				read_track_info(true, false, add_links, event.target);
+				
+			}
+		},false);
+}
+
 setInterval(refresh, 1000);
