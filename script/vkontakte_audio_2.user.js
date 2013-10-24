@@ -20,15 +20,13 @@ const __GM_STORAGE_PREFIX = [
 	if (localStorage){
 		if (!GM_deleteValue) {
 			function GM_deleteValue(aKey) {
-			  'use strict';
 			  localStorage.removeItem(__GM_STORAGE_PREFIX + aKey);
 			}
 		}
 
 		if (!GM_getValue) {
 			function GM_getValue(aKey, aDefault) {
-			  'use strict';
-			  let val = localStorage.getItem(__GM_STORAGE_PREFIX + aKey)
+			  var val = localStorage.getItem(__GM_STORAGE_PREFIX + aKey)
 			  if (null === val && 'undefined' != typeof aDefault) return aDefault;
 			  return val;
 			}
@@ -36,12 +34,11 @@ const __GM_STORAGE_PREFIX = [
 		
 		if (!GM_listValues) {
 			function GM_listValues() {
-			  'use strict';
-			  let prefixLen = __GM_STORAGE_PREFIX.length;
-			  let values = [];
-			  let i = 0;
-			  for (let i = 0; i < localStorage.length; i++) {
-				let k = localStorage.key(i);
+			  var prefixLen = __GM_STORAGE_PREFIX.length;
+			  var values = [];
+			  var i = 0;
+			  for (var i = 0; i < localStorage.length; i++) {
+				var k = localStorage.key(i);
 				if (k.substr(0, prefixLen) === __GM_STORAGE_PREFIX) {
 				  values.push(k.substr(prefixLen));
 				}
@@ -52,7 +49,6 @@ const __GM_STORAGE_PREFIX = [
 		
 		if (!GM_setValue) {
 			function GM_setValue(aKey, aVal) {
-			  'use strict';
 			  localStorage.setItem(__GM_STORAGE_PREFIX + aKey, aVal);
 			}
 		}
